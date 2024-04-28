@@ -1,0 +1,775 @@
+#pragma once
+
+#include "include.h" // 필수 라이브러리, define (동혁 - 분할 구현)
+
+#include "trap.h" // 장애물 시스템 (동혁 - 분할 구현)
+
+#include "Player.h" // 플레이어 시스템 (동혁 - 분할 구현)
+
+#include "intro_game.h" // 게임 규칙 출력 시스템 (동혁 - 분할 구현)
+
+#include "initialize.h" // 플레이어 정보 초기화 시스템 (동혁 - 분할 구현)
+
+#include "board_display.h" // 보드판 상태 출력 시스템 (동혁 - 분할 구현)
+
+#include "gotoxy.h" // 특정 위치로 커서 이동 시스템 (동혁 - 분할 구현)
+
+void print_shape(Player p1, Player p2);  // 플레이어 말 출력
+
+int game_play(Player* p1, Player* p2);  //게임 진행 과정
+
+int main(void)
+{
+
+    intro_game();  //게임 설명 기능 추가(김현)
+
+    Player p1, p2;
+
+    int end_game = 0;
+
+    initialize(&p1, &p2);
+
+    srand((unsigned)time(NULL));
+
+    while (!(end_game))
+    {
+        end_game = game_play(&p1, &p2);
+    }
+
+    gotoxy(1, 24);
+
+    return 0;
+
+}
+
+/*
+
+선수들의 말 출력
+
+*/
+
+void print_shape(Player p1, Player p2)
+{
+
+    if (p1.location >= 119)  //말이 45칸 이상으로 넘어가도 45 값을 주라는 의미
+
+        p1.location = 119;
+
+    if (p2.location >= 119)  //이하동문
+
+        p2.location = 119;
+
+    if (p1.location <= 1)        //첫 번째 플레이어의 말이 칸 밖으로 사라지지 않게 함 (김현)
+
+        p1.location = 1;
+
+    if (p2.location <= 1)        //두 번째 플레이어의 말이 칸 밖으로 사라지지 않게 함 (김현)
+
+        p2.location = 1;
+
+    gotoxy(p1.location, 13);  //8번째 줄에 말 출력
+
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 6);  //플레이어 말 색깔 설정 (김현)
+
+    printf("%s", p1.shape);
+
+    if (p1.location == p2.location)  //말의 위치가 겹치면 두 번째 말이 첫 번째 말 아래로 감
+
+    {
+
+        gotoxy(p2.location, 14);
+
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);  //플레이어 말 색깔 설정 = 빨간색 (김현) 
+
+        printf("%s", p2.shape);
+
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+
+    }
+
+    else  //두 말의 위치가 겹치지 않는다면 같은 라인에 위치
+
+    {
+
+        gotoxy(p2.location, 13);
+
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);  //플레이어 말 색깔 설정 = 노란색 (김현)
+
+        printf("%s", p2.shape);
+
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+    }
+
+}
+
+
+
+/*
+
+실제 게임 진행 상황
+
+*/
+int game_play(Player* p1, Player* p2)
+{
+
+    int dice; //주사위
+
+    system("cls");
+
+    board_display(p1, p2);
+
+    gotoxy(1, 16);
+
+    for (int i = 0; i < 2; i++)
+    {
+        if (p1->num == 0) // ♠부터 시작해야 하는데 무조건 1번 플레이어 부터 시작하는 오류 수정 (김성현)
+        {
+
+            gotoxy(1, 16);  //16번째 줄에서 문구 출력         
+
+            printf("%s님이 주사위를 돌릴 차례입니다. 키보드를 눌러 주사위를 돌려주세요", p1->name);
+
+            if (p1->location == 53) // 무인도 시스템 (동혁)
+            {
+                gotoxy(1, 17);
+                printf("%s님은 주사위 3이 나오면 무인도에서 탈출합니다\n", p1->name);
+            }
+
+            _getch();
+
+            dice = rand() % 6 + 1;
+
+            if (p1->location == 53) // 무인도 시스템 (동혁)
+            {
+                if (dice == 3) {
+                    gotoxy(1, 18);
+                    printf("%d 나왔습니다", dice);
+                    gotoxy(1, 19);
+                    printf("%s님은 무인도에서 탈출 했습니다\n", p1->name);
+                    p1->location += dice * 2;
+                }
+                else {
+                    gotoxy(1, 18);
+                    printf("%d 나왔습니다", dice);
+                    gotoxy(1, 19);
+                    printf("%s님은 무인도에서 탈출하지 못했습니다\n", p1->name);
+                    p1->location += 0;
+                }
+            }
+
+            else {
+                dice = rand() % 6 + 1;
+
+                p1->location += dice * 2;
+
+                gotoxy(1, 17);
+
+                printf("주사위의 숫자가 %d이므로 %s님의 위치는 %d입니다", dice, p1->name, p1->location / 2 + 1);
+
+                while (p1->count < 2) // 한 턴에 최대 두 번까지만 함정이 발동되도록 하는 코드 (김성현)
+                {
+                    switch (p1->location)
+                    {
+                    case 47:
+                        trap(p1);
+                        p1->count += 1;
+                        break;
+                    case 111:
+                        trap(p1);
+                        p1->count += 1;
+                        break;
+
+                    case 23:
+                        curse_trap(p1); // 저주 함정 함수 (김성현)
+                        p1->count += 1;
+                        break;
+                    case 59:
+                        curse_trap(p1); // 저주 함정 함수 (김성현)
+                        p1->count += 1;
+                        break;
+                    case 83:
+                        curse_trap(p1); // 저주 함정 함수 (김성현)
+                        p1->count += 1;
+                        break;
+
+                    case 9:
+                        bomb_trap(p1); // 지뢰 발판 함수 (김성현)
+                        p1->count += 5;
+                        check_hp(p1); // hp 확인 함수 (김성현)
+                        break;
+                    case 41:
+                        bomb_trap(p1); // 지뢰 발판 함수 (김성현)
+                        p1->count += 5;
+                        check_hp(p1); // hp 확인 함수 (김성현)
+                        break;
+                    case 77:
+                        bomb_trap(p1); // 지뢰 발판 함수 (김성현)
+                        p1->count += 5;
+                        check_hp(p1); // hp 확인 함수 (김성현)
+                        break;
+                    case 101:
+                        bomb_trap(p1); // 지뢰 발판 함수 (김성현)
+                        p1->count += 5;
+                        check_hp(p1); // hp 확인 함수 (김성현)
+                        break;
+
+                    case 15:
+                        randomtrap(p1);  //랜덤한 위치로 이동 함수 (김현)
+                        p1->count += 1;
+                        break;
+                    case 69:
+                        randomtrap(p1);  //랜덤한 위치로 이동 함수 (김현)
+                        p1->count += 1;
+                        break;
+
+                    case 31:
+                        attackchance(p1, p2);  //상대방 위치 공격 함수 (김현)
+                        p1->count += 5;
+                        break;
+                    case 89:
+                        attackchance(p1, p2);  //상대방 위치 공격 함수 (김현)
+                        p1->count += 5;
+                        break;
+
+                    case 95:
+                        recover_hp(p1);  //플레이어 체력 회복 함수 (김현)
+                        p1->count += 5;
+                        break;
+                    case 63:
+                        recover_hp(p1);  //플레이어 체력 회복 함수 (김현)
+                        p1->count += 5;
+                        break;
+
+                    case 37:
+                        attack_hp(p1, p2);  //플레이어 체력 회복 or 공격 선택 함수 (김현)
+                        p1->count += 5;
+                        break;
+
+                    case 73:
+                        attack_hp(p1, p2);  //플레이어 체력 회복 or 공격 선택 함수 (김현)
+                        p1->count += 5;
+                        break;
+
+                    case 115:
+                        Change(p1, p2); // 플레이어 위치 바꾸기 (동혁)
+                        p1->count += 1;
+                        break;
+
+                    case 53:
+                        Island(p1, p2); // 무인도 시스템 (동혁)
+
+                    default:
+                        p1->count += 5;
+                    }
+                }
+            }
+            p1->count = 0;
+
+            Sleep(2500);  //멈추는 시간(1000당 1초)
+
+            board_display(p1, p2);
+
+            if (conclusion(p1))
+
+            {
+
+                gotoxy(1, 20);  //20번째 줄에 문구 출력
+
+                printf("%s님이 이기셨습니다", p1->name);
+
+                return 1;
+
+            }
+
+            gotoxy(1, 16);
+
+
+            printf("%s님이 주사위를 돌릴 차례입니다. 키보드를 눌러 주사위를 돌려주세요", p2->name);
+
+            if (p2->location == 53) // 무인도 시스템 (동혁)
+            {
+                gotoxy(1, 17);
+                printf("%s님은 주사위 3이 나오면 무인도에서 탈출합니다\n", p2->name);
+            }
+
+            _getch();
+
+            dice = rand() % 6 + 1;
+
+            if (p2->location == 53) // 무인도 시스템 (동혁)
+            {
+                if (dice == 3) {
+                    gotoxy(1, 18);
+                    printf("%d 나왔습니다", dice);
+                    gotoxy(1, 19);
+                    printf("%s님은 무인도에서 탈출 했습니다\n", p2->name);
+                    p2->location += dice * 2;
+                }
+                else {
+                    gotoxy(1, 18);
+                    printf("%d 나왔습니다", dice);
+                    gotoxy(1, 19);
+                    printf("%s님은 무인도에서 탈출하지 못했습니다\n", p2->name);
+                    p2->location += 0;
+                }
+            }
+
+            else {
+                p2->location += dice * 2;
+
+                gotoxy(1, 17);
+
+                printf("주사위의 숫자가 %d이므로 %s님의 위치는 %d입니다", dice, p2->name, p2->location / 2 + 1);
+
+                while (p2->count < 2) // 한 턴에 최대 두 번까지만 함정이 발동되도록 하는 코드 (김성현)
+                {
+                    switch (p2->location)
+                    {
+                    case 47:
+                        trap(p2);
+                        p2->count += 1;
+                        break;
+                    case 111:
+                        trap(p2);
+                        p2->count += 1;
+                        break;
+
+                    case 23:
+                        curse_trap(p2); // 저주 함정 함수 (김성현)
+                        p2->count += 1;
+                        break;
+                    case 59:
+                        curse_trap(p2); // 저주 함정 함수 (김성현)
+                        p2->count += 1;
+                        break;
+                    case 83:
+                        curse_trap(p2); // 저주 함정 함수 (김성현)
+                        p2->count += 1;
+                        break;
+
+                    case 9:
+                        bomb_trap(p2); // 지뢰 발판 함수 (김성현)
+                        p2->count += 5;
+                        check_hp(p2); // hp 확인 함수 (김성현)
+                        break;
+                    case 41:
+                        bomb_trap(p2); // 지뢰 발판 함수 (김성현)
+                        p2->count += 5;
+                        check_hp(p2); // hp 확인 함수 (김성현)
+                        break;
+                    case 77:
+                        bomb_trap(p2); // 지뢰 발판 함수 (김성현)
+                        p2->count += 5;
+                        check_hp(p2); // hp 확인 함수 (김성현)
+                        break;
+                    case 101:
+                        bomb_trap(p2); // 지뢰 발판 함수 (김성현)
+                        p2->count += 5;
+                        check_hp(p2); // hp 확인 함수 (김성현)
+                        break;
+
+                    case 15:
+                        randomtrap(p2);  //랜덤한 위치로 이동 함수 (김현)
+                        p2->count += 1;
+                        break;
+                    case 69:
+                        randomtrap(p2);  //랜덤한 위치로 이동 함수 (김현)
+                        p2->count += 1;
+                        break;
+
+                    case 31:
+                        attackchance(p2, p1);  //상대방 위치 공격 함수 (김현)
+                        p2->count += 5;
+                        break;
+                    case 89:
+                        attackchance(p2, p1);  //상대방 위치 공격 함수 (김현)
+                        p2->count += 5;
+                        break;
+
+                    case 95:
+                        recover_hp(p2);  //플레이어 체력 회복 함수 (김현)
+                        p2->count += 5;
+                        break;
+                    case 63:
+                        recover_hp(p2);  //플레이어 체력 회복 함수 (김현)
+                        p2->count += 5;
+                        break;
+
+                    case 37:
+                        attack_hp(p2, p1);  //플레이어 체력 회복 or 공격 선택 함수 (김현)
+                        p2->count += 5;
+                        break;
+
+                    case 73:
+                        attack_hp(p2, p1);  //플레이어 체력 회복 or 공격 선택 함수 (김현)
+                        p2->count += 5;
+                        break;
+
+                    case 115:
+                        Change(p1, p2); // 플레이어 위치 바꾸기 (동혁)
+                        p2->count += 1;
+                        break;
+
+                    case 53:
+                        Island(p1, p2); // 무인도 시스템 (동혁)
+
+                    default:
+                        p2->count += 5;
+                    }
+                }
+            }
+            p2->count = 0;
+
+            Sleep(2500);
+
+            board_display(p1, p2);
+
+            if (conclusion(p2))
+
+            {
+
+                gotoxy(1, 20);
+
+                printf("%s님이 이기셨습니다", p2->name);
+
+                return 2;
+
+            }
+
+        }
+
+        else  //위와 동일 // ♠부터 시작해야 하는데 무조건 1번 플레이어 부터 시작하는 오류 수정 (김성현)
+
+        {
+
+            gotoxy(1, 16);
+
+            printf("%s님이 주사위를 돌릴 차례입니다. 키보드를 눌러 주사위를 돌려주세요", p2->name);
+
+            if (p2->location == 53) // 무인도 시스템 (동혁)
+            {
+                gotoxy(1, 17);
+                printf("%s님은 주사위 3이 나오면 무인도에서 탈출합니다\n", p2->name);
+            }
+
+            _getch();
+
+            dice = rand() % 6 + 1;
+
+            if (p2->location == 53) // 무인도 시스템 (동혁)
+            {
+                if (dice == 3) {
+                    gotoxy(1, 18);
+                    printf("%d 나왔습니다", dice);
+                    gotoxy(1, 19);
+                    printf("%s님은 무인도에서 탈출 했습니다\n", p2->name);
+                    p2->location += dice * 2;
+                }
+                else {
+                    gotoxy(1, 18);
+                    printf("%d 나왔습니다", dice);
+                    gotoxy(1, 19);
+                    printf("%s님은 무인도에서 탈출하지 못했습니다\n", p2->name);
+                    p2->location += 0;
+                }
+            }
+
+            else {
+
+                dice = rand() % 6 + 1;
+
+                p2->location += dice * 2;
+
+                gotoxy(1, 17);
+
+                printf("주사위의 숫자가 %d이므로 %s님의 위치는 %d입니다", dice, p2->name, p2->location / 2 + 1);
+
+                while (p2->count < 2) // 한 턴에 최대 두 번까지만 함정이 발동되도록 하는 코드 (김성현)
+                {
+                    switch (p2->location)
+                    {
+                    case 47:
+                        trap(p2);
+                        p2->count += 1;
+                        break;
+                    case 111:
+                        trap(p2);
+                        p2->count += 1;
+                        break;
+
+                    case 23:
+                        curse_trap(p2); // 저주 함정 함수 (김성현)
+                        p2->count += 1;
+                        break;
+                    case 59:
+                        curse_trap(p2); // 저주 함정 함수 (김성현)
+                        p2->count += 1;
+                        break;
+                    case 83:
+                        curse_trap(p2); // 저주 함정 함수 (김성현)
+                        p2->count += 1;
+                        break;
+
+                    case 9:
+                        bomb_trap(p2); // 지뢰 발판 함수 (김성현)
+                        p2->count += 5;
+                        check_hp(p2); // hp 확인 함수 (김성현)
+                        break;
+                    case 41:
+                        bomb_trap(p2); // 지뢰 발판 함수 (김성현)
+                        p2->count += 5;
+                        check_hp(p2); // hp 확인 함수 (김성현)
+                        break;
+                    case 77:
+                        bomb_trap(p2); // 지뢰 발판 함수 (김성현)
+                        p2->count += 5;
+                        check_hp(p2); // hp 확인 함수 (김성현)
+                        break;
+                    case 101:
+                        bomb_trap(p2); // 지뢰 발판 함수 (김성현)
+                        p2->count += 5;
+                        check_hp(p2); // hp 확인 함수 (김성현)
+                        break;
+
+                    case 15:
+                        randomtrap(p2);  //랜덤한 위치로 이동 함수 (김현)
+                        p2->count += 1;
+                        break;
+                    case 69:
+                        randomtrap(p2);  //랜덤한 위치로 이동 함수 (김현)
+                        p2->count += 1;
+                        break;
+
+                    case 31:
+                        attackchance(p2, p1);  //상대방 위치 공격 함수 (김현)
+                        p2->count += 5;
+                        break;
+                    case 89:
+                        attackchance(p2, p1);  //상대방 위치 공격 함수 (김현)
+                        p2->count += 5;
+                        break;
+
+                    case 95:
+                        recover_hp(p2);  //플레이어 체력 회복 함수 (김현)
+                        p2->count += 5;
+                        break;
+                    case 63:
+                        recover_hp(p2);  //플레이어 체력 회복 함수 (김현)
+                        p2->count += 5;
+                        break;
+
+                    case 37:
+                        attack_hp(p2, p1);  //플레이어 체력 회복 or 공격 선택 함수 (김현)
+                        p2->count += 5;
+                        break;
+
+                    case 73:
+                        attack_hp(p2, p1);  //플레이어 체력 회복 or 공격 선택 함수 (김현)
+                        p2->count += 5;
+                        break;
+
+                    case 115:
+                        Change(p1, p2); // 플레이어 위치 바꾸기 (동혁)
+                        p2->count += 1;
+                        break;
+
+                    case 53:
+                        Island(p1, p2); // 무인도 시스템 (동혁)
+
+                    default:
+                        p2->count += 5;
+                    }
+                }
+            }
+            p2->count = 0;
+
+            Sleep(2500);
+
+            board_display(p1, p2);
+
+            if (conclusion(p2))
+
+            {
+
+                gotoxy(1, 20);
+
+                printf("%s님이 이기셨습니다", p2->name);
+
+                return 2;
+
+            }
+
+            gotoxy(1, 16);  //16번째 줄에서 문구 출력
+
+            printf("%s님이 주사위를 돌릴 차례입니다. 키보드를 눌러 주사위를 돌려주세요", p1->name);
+
+            if (p1->location == 53) // 무인도 시스템 (동혁)
+            {
+                gotoxy(1, 17);
+                printf("%s님은 주사위 3이 나오면 무인도에서 탈출합니다\n", p1->name);
+            }
+
+            _getch();
+
+            dice = rand() % 6 + 1;
+
+            if (p1->location == 53) // 무인도 시스템 (동혁)
+            {
+                if (dice == 3) {
+                    gotoxy(1, 18);
+                    printf("%d 나왔습니다", dice);
+                    gotoxy(1, 19);
+                    printf("%s님은 무인도에서 탈출 했습니다\n", p1->name);
+                    p1->location += dice * 2;
+                }
+                else {
+                    gotoxy(1, 18);
+                    printf("%d 나왔습니다", dice);
+                    gotoxy(1, 19);
+                    printf("%s님은 무인도에서 탈출하지 못했습니다\n", p1->name);
+                    p1->location += 0;
+                }
+            }
+
+            else {
+
+                dice = rand() % 6 + 1;
+
+                p1->location += dice * 2;
+
+                gotoxy(1, 17);
+
+                printf("주사위의 숫자가 %d이므로 %s님의 위치는 %d입니다", dice, p1->name, p1->location / 2 + 1);
+
+                while (p1->count < 2) // 한 턴에 최대 두 번까지만 함정이 발동되도록 하는 코드 (김성현)
+                {
+                    switch (p1->location)
+                    {
+                    case 47:
+                        trap(p1);
+                        p1->count += 1;
+                        break;
+                    case 111:
+                        trap(p1);
+                        p1->count += 1;
+                        break;
+
+                    case 23:
+                        curse_trap(p1); // 저주 함정 함수 (김성현)
+                        p1->count += 1;
+                        break;
+                    case 59:
+                        curse_trap(p1); // 저주 함정 함수 (김성현)
+                        p1->count += 1;
+                        break;
+                    case 83:
+                        curse_trap(p1); // 저주 함정 함수 (김성현)
+                        p1->count += 1;
+                        break;
+
+                    case 9:
+                        bomb_trap(p1); // 지뢰 발판 함수 (김성현)
+                        p1->count += 5;
+                        check_hp(p1); // hp 확인 함수 (김성현)
+                        break;
+                    case 41:
+                        bomb_trap(p1); // 지뢰 발판 함수 (김성현)
+                        p1->count += 5;
+                        check_hp(p1); // hp 확인 함수 (김성현)
+                        break;
+                    case 77:
+                        bomb_trap(p1); // 지뢰 발판 함수 (김성현)
+                        p1->count += 5;
+                        check_hp(p1); // hp 확인 함수 (김성현)
+                        break;
+                    case 101:
+                        bomb_trap(p1); // 지뢰 발판 함수 (김성현)
+                        p1->count += 5;
+                        check_hp(p1); // hp 확인 함수 (김성현)
+                        break;
+
+                    case 15:
+                        randomtrap(p1);  //랜덤한 위치로 이동 함수 (김현)
+                        p1->count += 1;
+                        break;
+                    case 69:
+                        randomtrap(p1);  //랜덤한 위치로 이동 함수 (김현)
+                        p1->count += 1;
+                        break;
+
+                    case 31:
+                        attackchance(p1, p2);  //상대방 위치 공격 함수 (김현)
+                        p1->count += 5;
+                        break;
+                    case 89:
+                        attackchance(p1, p2);  //상대방 위치 공격 함수 (김현)
+                        p1->count += 5;
+                        break;
+
+                    case 95:
+                        recover_hp(p1);  //플레이어 체력 회복 함수 (김현)
+                        p1->count += 5;
+                        break;
+                    case 63:
+                        recover_hp(p1);  //플레이어 체력 회복 함수 (김현)
+                        p1->count += 5;
+                        break;
+
+                    case 37:
+                        attack_hp(p1, p2);  //플레이어 체력 회복 or 공격 선택 함수 (김현)
+                        p1->count += 5;
+                        break;
+
+                    case 73:
+                        attack_hp(p1, p2);  //플레이어 체력 회복 or 공격 선택 함수 (김현)
+                        p1->count += 5;
+                        break;
+
+                    case 115:
+                        Change(p1, p2); // 플레이어 위치 바꾸기 (동혁)
+                        p1->count += 1;
+                        break;
+
+                    case 53:
+                        Island(p1, p2); // 무인도 시스템 (동혁)
+
+                    default:
+                        p1->count += 5;
+                    }
+                }
+            }
+            p1->count = 0;
+
+
+            Sleep(2500);  //멈추는 시간(1000당 1초)
+
+            board_display(p1, p2);
+
+            if (conclusion(p1))
+
+            {
+
+                gotoxy(1, 20);  //20번째 줄에 문구 출력
+
+                printf("%s님이 이기셨습니다", p1->name);
+
+                return 1;
+
+            }
+        }
+    }
+    return 0;
+}
+
+/*
+
+승패 여부
+
+*/
+int conclusion(Player* p)
+{
+    if (p->location >= 117)  //59번째 칸 의미
+        return 1;
+
+    return 0;
+}
