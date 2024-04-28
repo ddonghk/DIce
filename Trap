@@ -1,0 +1,309 @@
+#pragma once
+
+#include "Player.h"
+
+void trap(Player* p)
+{
+
+    if (p->location == 47 || p->location == 111)  //24, 56칸 의미
+    {
+        Sleep(2500);
+
+        gotoxy(1, 19);
+
+        printf("함정 발동!! 초기 위치로 돌아가시오");
+
+        p->location = 1; //초기화
+    }
+}
+
+
+void curse_trap(Player* p) // 저주 주사위 함수 (김성현)
+{
+    int curse_dice;
+
+    if (p->location == 23 || p->location == 59 || p->location == 83) // 12, 30, 42칸 의미 
+    {
+        Sleep(2500);
+
+        gotoxy(1, 19);
+
+        printf("저주 함정 발동!! 주사위를 굴려 그 값만큼 뒤로 돌아가시오\n");
+
+        _getch();
+
+        curse_dice = rand() % 6 + 1;
+
+        p->location -= curse_dice * 2;
+
+        printf("%d만큼 뒤로 이동하여 당신의 위치는 %d입니다", curse_dice, p->location / 2 + 1);
+    }
+}
+
+
+void bomb_trap(Player* p) // 지뢰 발판 함수 (김성현)
+{
+    int bomb_damage;
+
+    if (p->location == 9 || p->location == 41 || p->location == 77 || p->location == 101) // 5, 21, 39, 51칸을 의미
+    {
+        Sleep(2500);
+
+        gotoxy(1, 19);
+
+        printf("이런!! 당신은 지뢰를 밟아서 5 대미지를 입으셨습니다!!\n");
+
+        p->hp -= 5;
+
+        printf("%s님의 남은 hp는 %d입니다", p->name, p->hp);
+    }
+}
+
+
+void check_hp(Player* p) // hp 확인 함수 (김성현)
+{
+    if (p->hp == 0)
+    {
+        Sleep(2500);
+
+        gotoxy(1, 21);
+
+        printf("%s님의 hp가 0이되어 초기 위치로 이동합니다", p->name);
+
+        p->location = 1;
+
+        p->hp = 10;
+
+        p->count = 0;
+    }
+
+    if (p->hp <= 0)  //hp 마이너스 되는 경우 추가 (김현)
+    {
+        Sleep(2500);
+
+        gotoxy(1, 21);
+
+        printf("%s님의 hp가 마이너스가 되어 초기 위치로 이동합니다", p->name);
+
+        p->location = 1;
+
+        p->hp = 10;
+
+        p->count = 0;
+    }
+}
+
+
+/* 랜덤한 위치로 이동 함수 - 특정 발판 밟으면 랜덤한 위치로 이동 (김현) */
+void randomtrap(Player* p) {
+
+    if (p->location == 15 || p->location == 69) //8, 35칸 의미
+    {
+        Sleep(2500);
+
+        gotoxy(1, 19);
+
+        printf("함정 발동!! 랜덤한 위치로 이동합니다");
+
+        p->location = ((rand() % 59) + 1) * 2 - 1;
+
+        gotoxy(1, 20);
+
+        printf("위치는 %d입니다", p->location / 2 + 1);
+    }
+}
+
+
+/* 상대방 위치 공격 함수 - 상대방을 몇 칸 이동시키는 공격 기능 (김현) */
+void attackchance(Player* p1, Player* p2) {
+
+    int diceselect1;
+
+    int diceselect2;
+
+    if (p1->location == 31 || p1->location == 89) //16, 45칸 의미
+    {
+        Sleep(2500);
+
+        gotoxy(1, 19);
+
+        printf("찬스 발동!! 상대방을 공격합니다\n");
+
+        printf("상대방을 이동시킬 방향을 정합니다. 키보드를 눌러 주사위를 굴려주세요\n");
+
+        printf("(홀수가 나오면 뒤로, 짝수가 나오면 앞으로 이동시킵니다)\n");
+
+        _getch();
+
+        diceselect1 = rand() % 6 + 1;
+
+
+        if (diceselect1 % 2 == 0) {
+
+            gotoxy(1, 23);
+
+            printf("주사위 숫자는 %d입니다. 짝수이므로 앞으로 이동합니다\n", diceselect1);
+
+            printf("다음으로 상대를 몇 칸 이동시킬지 정합니다. 키보드를 눌러 주사위를 굴려주세요\n");
+
+            _getch();
+
+            diceselect2 = rand() % 6 + 1;
+
+            printf("주사위 숫자는 %d입니다. 상대방을 이동시킵니다\n", diceselect2);
+
+            p2->location += diceselect2 * 2;
+
+            printf("상대방의 위치는 %d가 되었습니다", p2->location / 2 + 1);
+
+        }
+        else {
+            gotoxy(1, 23);
+
+            printf("주사위 숫자는 %d입니다. 홀수이므로 뒤로 이동합니다\n", diceselect1);
+
+            printf("다음으로 상대를 몇 칸 이동시킬지 정합니다. 키보드를 눌러 주사위를 굴려주세요\n");
+
+            _getch();
+
+            diceselect2 = rand() % 6 + 1;
+
+            printf("주사위 숫자는 %d입니다. 상대방을 이동시킵니다\n", diceselect2);
+
+            p2->location -= diceselect2 * 2;
+
+            printf("상대방의 위치는 %d가 되었습니다", p2->location / 2 + 1);
+
+        }
+    }
+}
+
+
+void recover_hp(Player* p) // 플레이어 체력 회복 함수 (김현)
+{
+    int dice;
+
+    if (p->location == 95 || p->location == 63) // 48, 32칸을 의미
+    {
+        Sleep(2500);
+
+        gotoxy(1, 19);
+
+        printf("찬스 발동!! 주사위에 나온 숫자만큼 플레이어의 hp을 회복합니다\n");
+
+        printf("키보드를 눌러 주사위를 굴려주세요!\n");
+
+        _getch();
+
+        dice = rand() % 6 + 1;
+
+        printf("주사위 숫자는 %d입니다. %d만큼 hp를 회복합니다.\n", dice, dice);
+
+        p->hp += dice;
+
+        printf("%s님의 남은 hp는 %d입니다", p->name, p->hp);
+    }
+}
+
+
+void attack_hp(Player* p1, Player* p2) {  //플레이어 체력 회복 or 공격 선택 함수 (김현)
+
+    int dice;
+    char word[2];
+
+    if (p1->location == 37 || p1->location == 73) //19, 37칸 의미
+    {
+        Sleep(2500);
+
+        gotoxy(1, 19);
+
+        printf("찬스 발동!! 선택의 순간입니다. 회복과 공격 중 어느 것을 고르시겠습니까?\n");
+
+        printf("회복하시려면 'h'를, 상대방을 공격하려면 'a'를 입력해주세요.\n");
+
+        scanf("%s", word);
+
+        if (*word == 'h') {
+
+            printf("회복을 선택하셨습니다. 그럼 주사위를 굴려 얼만큼 hp를 회복할 지 정합니다.\n");
+
+            printf("키보드를 눌러 주사위를 굴려주세요!\n");
+
+            _getch();
+
+            dice = rand() % 6 + 1;
+
+            printf("주사위 숫자는 %d입니다. %d만큼 hp를 회복합니다.\n", dice, dice);
+
+            p1->hp += dice;
+
+            printf("%s님의 남은 hp는 %d입니다", p1->name, p1->hp);
+        }
+
+        if (*word == 'a') {
+
+            printf("공격을 선택하셨습니다. 그럼 주사위를 굴려 얼만큼 상대의 hp를 깎을 지 정합니다.\n");
+
+            printf("키보드를 눌러 주사위를 굴려주세요!\n");
+
+            _getch();
+
+            dice = rand() % 6 + 1;
+
+            printf("주사위 숫자는 %d입니다. %d만큼 상대의 hp를 깎습니다.\n", dice, dice);
+
+            p2->hp -= dice;
+
+            printf("%s님의 남은 hp는 %d입니다", p2->name, p2->hp);
+        }
+    }
+}
+
+
+void Change(Player* p1, Player* p2) // 플레이어 위치 바꾸기 (동혁)
+{
+    int PreLocation;
+
+    if (p1->location == 115) // 58번째 칸
+    {
+        Sleep(2500);
+        gotoxy(1, 19);
+        printf("플레이어 위치 바꾸기 발동!\n");
+        printf("플레이어 서로의 위치가 바뀝니다!\n");
+
+        PreLocation = p2->location;
+        p2->location = p1->location;
+        p1->location = PreLocation;
+    }
+
+    else if (p2->location == 115)
+    {
+        Sleep(2500);
+        gotoxy(1, 19);
+        printf("플레이어 위치 바꾸기 발동!\n");
+        printf("플레이어 서로의 위치가 바뀝니다!\n");
+
+        PreLocation = p1->location;
+        p1->location = p2->location;
+        p2->location = PreLocation;
+    }
+}
+
+
+void Island(Player* p1, Player* p2) // 무인도 (동혁)
+{
+
+    if (p1->location == 53) // 27번째 칸
+    {
+        Sleep(2000);
+        gotoxy(1, 21);
+        printf("무인도 발동! 한 턴 쉬어가세요!\n");
+    }
+
+    else if (p2->location == 53) // 27번째 칸
+    {
+        Sleep(2000);
+        gotoxy(1, 21);
+        printf("무인도 발동! 한 턴 쉬어가세요!\n");
+    }
+}
